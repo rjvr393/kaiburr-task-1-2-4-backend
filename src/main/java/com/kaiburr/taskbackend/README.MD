@@ -1,4 +1,4 @@
-# Kaiburr Task 1 - Backend Submission
+# Kaiburr Task 1 and 2 - Backend Submission
 
 ## Description
 This is a Spring Boot backend application built for Kaiburr Assessment Task 1.

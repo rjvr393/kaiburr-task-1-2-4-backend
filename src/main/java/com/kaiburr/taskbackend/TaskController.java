@@ -22,7 +22,7 @@ public class TaskController {
         return taskService.getTaskById(id);
     }
 
-    @PutMapping
+    @PostMapping
     public Task createTask(@RequestBody Task task) {
         return taskService.createOrUpdateTask(task);
     }

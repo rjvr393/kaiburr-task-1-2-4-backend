@@ -5,10 +5,8 @@ import org.springframework.stereotype.Service;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
-import java.util.Date;
+import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 public class TaskService {
@@ -21,12 +19,10 @@ public class TaskService {
     }
 
     public Task getTaskById(String id) {
-        Optional<Task> task = taskRepository.findById(id);
-        return task.orElse(null);
+        return taskRepository.findById(id).orElse(null);
     }
 
     public Task createOrUpdateTask(Task task) {
-        validateCommand(task.getCommand());
         return taskRepository.save(task);
     }
 
@@ -38,37 +34,34 @@ public class TaskService {
         return taskRepository.findByNameContainingIgnoreCase(name);
     }
 
-    public Task executeCommand(String id) {
-        Task task = getTaskById(id);
+    public Task executeCommand(String taskId) {
+        Task task = getTaskById(taskId);
         if (task == null) return null;
 
-        try {
-            Date start = new Date();
+        String command = task.getCommand();
+        LocalDateTime start = LocalDateTime.now();
+        StringBuilder output = new StringBuilder();
 
-            // Run shell command
-            String[] command = { "cmd.exe", "/c", task.getCommand() };
+        try {
             Process process = Runtime.getRuntime().exec(command);
-            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            String output = reader.lines().collect(Collectors.joining("\n"));
+            BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(process.getInputStream())
+            );
+
+            String line;
+            while ((line = reader.readLine()) != null) {
+                output.append(line).append("\n");
+            }
 
             process.waitFor();
-            Date end = new Date();
-
-            // Save execution result
-            TaskExecution execution = new TaskExecution(start, end, output);
-            task.getTaskExecutions().add(execution);
-
-            return taskRepository.save(task);
-
         } catch (Exception e) {
-            e.printStackTrace();
-            return null;
+            output.append("Error: ").append(e.getMessage());
         }
-    }
 
-    private void validateCommand(String cmd) {
-        if (cmd.contains("rm") || cmd.contains("shutdown") || cmd.contains("del")) {
-            throw new RuntimeException("⚠️ Dangerous command detected!");
-        }
+        LocalDateTime end = LocalDateTime.now();
+        TaskExecution execution = new TaskExecution(start, end, output.toString());
+        task.getTaskExecutions().add(execution);
+
+        return taskRepository.save(task);
     }
 }
